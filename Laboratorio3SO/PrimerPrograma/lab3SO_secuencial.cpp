@@ -1,87 +1,103 @@
+#include <pthread.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
 #include <iostream>
-using namespace std;
+#include <sstream>
 #include <fstream>
+#include <chrono>
+
+using namespace std;
+
+//Contadores globales de las lineas, caracteres y palabras de todos los documentos que se lean
+int cnt_l_totales = 0;
+int cnt_car_totales = 0;
+int cnt_pal_totales = 0;
 
 //Funcion que muestra lo que contiene cada archivo y además muestra cuantas lineas y caracteres tiene cada uno
-void procesar_archivo(string archivo)
+void leerArchivo(string archivo)
 {
     ifstream file(archivo);
     string str;
-    int cnt = 0;
+    
+    //Contadores de lineas, caracteres y palabras
+    int cnt_l = 0;
     int cnt_car = 0;
+    int cnt_pal = 1;
 
     while(std::getline(file, str))
     {
-        //contar linea
-        cnt++;
+        //Contar lineas
+        cnt_l++;
 
-        //contar caracteres
-
+        //Contar caracteres
         for(int i=0;i<str.length();i++)
         {
+            
+            if(str[i] == ' ')
+            {
+                //Contar palabras
+                cnt_pal++;
+            }
+            
             cout<< str[1];
             cnt_car++;
+
         }
 
         cout<<endl;
 
     }
 
-    //Mostrar por pantalla la cantidad de lineas y caracteres del archivo
-    cout<<cnt<<" lineas" << endl;
+    //El contador de caracteres suma los saltos entre cada linea, por lo que es necesario restarlos para obtener la cantidad total de caracteres
+    cnt_car -= (cnt_l - 1);
+
+    //Muestra por pantalla la cantidad de lineas, caracteres y palabras que contiene el archivo
+    cout << cnt_l << " lineas" << endl;
     cout << cnt_car << " caracteres" << endl;
+    cout << cnt_pal << " palabras" << endl;
+    cout<<"-------------------------------------------------"<<endl;
+    cout<<endl;
+
+    //Se le suman los valores obtenidos del texto en los contadores totales
+    cnt_l_totales += cnt_l;
+    cnt_car_totales += cnt_car;
+    cnt_pal_totales += cnt_pal;
+    
 }
 
-//Funcion que se encarga de calcular las lineas de cada archivo por separado
-int contarLineasTotales(string archivo)
-{
-    ifstream file(archivo);
-    string str;
-    int lineas_totales = 0;
 
-    while(std::getline(file, str))
-    {
-        //contar lineas
-        lineas_totales++;
-    }
-
-    return lineas_totales;
-}
-
-//Funcion que calcula los caracteres de cada archivo a parte sin mostrar lo que dice cada archivo
-int contarCarTotales(string archivo)
-{
-    ifstream file(archivo);
-    string str;
-    int cnt_car = 0;
-
-    while(std::getline(file, str))
-    {
-        //contar caracteres
-
-        for(int i=0;i<str.length();i++)
-        {
-            cnt_car++;
-        }
-    }
-
-    return cnt_car;
-}
-
+//Funcion principal del programa
 int main (int argc, char *argv[])
 {
-    //Se abre el archivo y se muestran cuantas lineas y caracteres tienen por separado, luego se hace una suma de los caracteres que tiene cada uno y se da el total al final
-    procesar_archivo("lab3SO.txt");
-    int lineas = contarLineasTotales("lab3SO.txt");
-    int caracteres = contarCarTotales("lab3SO.txt");
-    procesar_archivo("texto2.txt");
-    int lineasTotales = lineas + contarLineasTotales("texto2.txt");
-    int carTotales = caracteres + contarCarTotales("texto2.txt");
+    //Cronometro para medir el tiempo de ejecución del codigo completo
+    auto start = chrono::system_clock::now();
     
-    //Muestra por pantalla la cantidad total
+    string nArchivo;
+    int i;
+
+    //Recibe los archivos a leer a través de los argumentos de la consola
+    for(i = 0; i < argc - 1; i++)
+    {
+        nArchivo = argv[i+1];
+        leerArchivo(nArchivo);
+    }
+    
+    
+    //Muestra por pantalla la cantidad total de lineas, caracteres y palabras de los archivos que se le pida leer
     cout<<endl;
-    cout<<lineasTotales<<" lineas totales" << endl;
-    cout<<carTotales<<" caracteres totales" << endl;
+    cout<<"-------------------------------------------------"<<endl;
+    cout<<cnt_l_totales<<" lineas totales" << endl;
+    cout<<cnt_car_totales<<" caracteres totales" << endl;
+    cout<<cnt_pal_totales<<" palabras totales" << endl;
+    cout<<"-------------------------------------------------"<<endl;
+    cout<<endl;
+
+    auto end = chrono::system_clock::now();
+
+    chrono::duration<float,milli> duration = end - start;
+
+    cout << "Tiempo de ejecución del programa: " << duration.count() << " segundos" << endl;
 
     return 0;
 

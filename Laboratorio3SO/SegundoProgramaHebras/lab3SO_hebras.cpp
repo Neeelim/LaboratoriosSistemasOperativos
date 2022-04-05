@@ -5,128 +5,111 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include <chrono>
 
 using namespace std;
 
-void *procesarArchivo (void *param);
-void *procesarSegArchivo (void *param);
+//Variable global del archivo
+string archivo;
+
+//Contadores globales de las lineas, caracteres y palabras de todos los documentos que se lean
+int cnt_l_totales = 0;
+int cnt_car_totales = 0;
+int cnt_pal_totales = 0;
+
+void *leerArchivo (void *param);
 
 //Funcion principal del programa
 int main(int argc, char *argv[]) {
   
-  //Hebra principal para la primera función
-  pthread_t p_archivo, archivo2;
-  pthread_attr_t attr;
+  //Cronometro para medir el tiempo de ejecución del codigo completo
+  auto start = chrono::system_clock::now();
+    
+    string nArchivo;
+    int i;
 
-  pthread_attr_init (&attr);
-
-  pthread_create(&p_archivo, &attr, procesarArchivo, argv[1]);
-  pthread_create(&archivo2, &attr, procesarSegArchivo, argv[1]);
+    pthread_t threads[argc - 1];
+    pthread_attr_t attr;
   
-  pthread_join(p_archivo, NULL);
-  pthread_join(archivo2, NULL);
 
+    pthread_attr_init (&attr);
+
+    for(int i = 0; i < argc-1 ; i++)
+    {
+        nArchivo = argv[i+1];
+        archivo = nArchivo;
+        pthread_create(&threads[i+(argc-1)], &attr, leerArchivo, NULL);
+        pthread_join(threads[i+(argc-1)], NULL);
+      
+    }
+
+    //Muestra por pantalla la cantidad total de lineas, caracteres y palabras de los archivos que se le pida leer
+    cout<<endl;
+    cout<<"-------------------------------------------------"<<endl;
+    cout<<cnt_l_totales<<" lineas totales" << endl;
+    cout<<cnt_car_totales<<" caracteres totales" << endl;
+    cout<<cnt_pal_totales<<" palabras totales" << endl;
+    cout<<"-------------------------------------------------"<<endl;
+    cout<<endl;
+
+    auto end = chrono::system_clock::now();
+
+    chrono::duration<float,milli> duration = end - start;
+
+    cout << "Tiempo de ejecución del programa: " << duration.count() << " segundos" << endl;
 
   return 0;
 }
 
 
-//Funcion para contar las lineas y caracteres del archivo indicado
-void *procesarArchivo (void *param) {
+//Funcion para contar las lineas, caracteres y palabras de los archivos recibidos a través de los parámetros
+void *leerArchivo (void *param) {
   
-  ifstream file("lab3SO.txt");
+  ifstream file(archivo);
   string str;
-  //char *str;
-  char c[2];
-  int cnt = 0;
+  
+  //Contadores de lineas, caracteres y palabras
+  int cnt_l = 0;
   int cnt_car = 0;
+  int cnt_pal = 1;
 
-  //str = (char *) param;
+  while(std::getline(file, str))
+    {
+        //Contar lineas
+        cnt_l++;
 
-  int stream = open ("lab3SO.txt", O_RDONLY);
-
-  if (stream == -1) 
-  {
-    std::cout << "Error al abrir archivo" << std::endl;
-    pthread_exit(0);
-  }
-
-  while (read(stream,c,1)) 
-  {
-   
-        while(std::getline(file, str))
+        //Contar caracteres
+        for(int i=0;i<str.length();i++)
         {
-            //contar linea
-            cnt++;
-
-            //contar caracteres
-
-            for(int i=0;i<str.length();i++)
+            
+            if(str[i] == ' ')
             {
-                cout<< str[1];
-                cnt_car++;
+                //Contar palabras
+                cnt_pal++;
             }
+            
+            cout<< str[1];
+            cnt_car++;
 
-            cout<<endl;
-            sleep(1);
         }
+
+        cout<<endl;
     }
 
-    close (stream);
 
-    //Imprime por pantalla la cantidad de cada cosa
-    cout<<cnt<<" lineas" << endl;
+    //El contador de caracteres suma los saltos entre cada linea, por lo que es necesario restarlos para obtener la cantidad total de caracteres
+    cnt_car -= (cnt_l - 1);
+
+    //Muestra por pantalla la cantidad de lineas, caracteres y palabras que contiene el archivo
+    cout << cnt_l << " lineas" << endl;
     cout << cnt_car << " caracteres" << endl;
+    cout << cnt_pal << " palabras" << endl;
+    cout<<"-------------------------------------------------"<<endl;
 
-    pthread_exit(0);
-}
-
-//Funcion para contar las lineas y caracteres del segundo archivo indicado
-void *procesarSegArchivo (void *param) {
-  
-  ifstream file("texto2.txt");
-  string str;
-  //char *str;
-  char c[2];
-  int cnt2 = 0;
-  int cnt_car2 = 0;
-
-  //str = (char *) param;
-
-  int stream = open ("texto2", O_RDONLY);
-
-  if (stream == -1) 
-  {
-    std::cout << "Error al abrir archivo" << std::endl;
-    pthread_exit(0);
-  }
-
-  while (read(stream,c,1)) 
-  {
-   
-        while(std::getline(file, str))
-        {
-            //contar linea
-            cnt2++;
-
-            //contar caracteres
-
-            for(int i=0;i<str.length();i++)
-            {
-                cout<< str[1];
-                cnt_car2++;
-            }
-
-            cout<<endl;
-            sleep(1);
-        }
-    }
-
-    close (stream);
-
-    //Imprime por pantalla la cantidad de cada cosa
-    cout<<cnt2<<" lineas" << endl;
-    cout << cnt_car2 << " caracteres" << endl;
+    //Se le suman los valores obtenidos del texto en los contadores totales
+    cnt_l_totales += cnt_l;
+    cnt_car_totales += cnt_car;
+    cnt_pal_totales += cnt_pal;
 
     pthread_exit(0);
 }
